@@ -53,8 +53,8 @@ YELLOW='\[\033[1;33m\]'
 WHITE='\[\033[1;37m\]'
 NONE='\[\033[0m\]'
 
-#run a command inside all projects tracked on the vanir remote in the manifest
-function forall_vanir()
+#run a command inside all projects tracked on the codekill remote in the manifest
+function forall_codekill()
 {
   T=$(gettop)
   if [ ! "$T" ]; then
@@ -66,7 +66,7 @@ function forall_vanir()
   pushd . >& /dev/null
   cd $T
   pathlist=""
-  for x in `cat $(gettop)/.repo/manifest.xml | grep \<project | sed 's/.*project //g' | grep 'remote=\"vanir\"' | sed 's/[ ]*\/*>//g' | sed 's/groups=[\"a-zA-Z0-9,\-]*//g' | sed 's/.*path="//g' | sed 's/\".*//g'`; do
+  for x in `cat $(gettop)/.repo/manifest.xml | grep \<project | sed 's/.*project //g' | grep 'remote=\"codekill\"' | sed 's/[ ]*\/*>//g' | sed 's/groups=[\"a-zA-Z0-9,\-]*//g' | sed 's/.*path="//g' | sed 's/\".*//g'`; do
     pathlist="$pathlist $x"
   done
   cmd="`echo $* | sed 's/\"/\\\"/g'`"
@@ -1402,9 +1402,9 @@ ccend=$(echo -e "\033[0m")
             ;;
     esac
 if [ $retval -eq 0 ]; then
-    notify-send "VANIR" "$TARGET_PRODUCT build completed." -i $T/build/buildwin.png -t 10000
+    notify-send "CODEKILL" "$TARGET_PRODUCT build completed." -i $T/build/buildwin.png -t 10000
 else
-    notify-send "VANIR" "$TARGET_PRODUCT build FAILED." -i $T/build/buildfailed.png -t 10000
+    notify-send "CPDEKILL" "$TARGET_PRODUCT build FAILED." -i $T/build/buildfailed.png -t 10000
 fi
 return $retval
 }
@@ -1446,7 +1446,7 @@ function dopush()
         echo "Device Found."
     fi
 
-    if (adb shell cat /system/build.prop | grep -q "ro.product.device=vanir_$TARGET_PRODUCT");
+    if (adb shell cat /system/build.prop | grep -q "ro.product.device=codekill_$TARGET_PRODUCT");
     then
     adb root &> /dev/null
     sleep 0.3
@@ -1497,7 +1497,7 @@ alias mkap='dopush mka'
 alias cmkap='dopush cmka'
 
 smash() {
-#to do: add smash $anytarget, smashOTA, smash, smashVANIR
+#to do: add smash $anytarget, smashOTA, smash, smashCODEKILL
 DIR=$OUT
 #to do: fix the colors
 	if [ -d  "$DIR" ]; then

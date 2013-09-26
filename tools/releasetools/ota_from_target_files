@@ -407,7 +407,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   script.ShowProgress(0.5, 0)
 
-  #says: VANIR
+  #says: CODEKILL
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
@@ -415,23 +415,23 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
-  script.Print("\\\\\\\\   //\\\\ ||\\\\||====||=\\\\\\\\")
-  script.Print(" \\\\\\\\ //=\\\\\\\\||\\\\\\\\| || ||=//")
-  script.Print("  \\\\//   \\\\\\\\| \\\\|====|| \\\\\\\\")
-  script.Print(" ")
-  script.Print("  Vanir - JellyBean 4.3 ") 
-  script.Print("    by Team Vanir")
   script.Print(" ")
   script.Print(" ")
-  script.Print(" Using CM backuptool to allow")
-  script.Print("    gapps to survive w/out reinstall")
-  script.Mount("/system")
+  script.Print(" ")
+  script.Print(" ")
+  script.Print("  CodeKill - JellyBean 4.3++ ") 
+  script.Print("    by: CodeKill13")
+  script.Print(" ")
+  script.Print(" ")
+  script.Print(" ")
+  script.Print(" ")
+  script.Mount(" ")
   script.RunBackup("backup")
   script.Unmount("/system")
-  script.Print(" gapps evasive maneuvers COMPLETE");
+  script.Print(" ");
   script.Print(" ")
   script.Print(" ")
-  script.Print("Installing the ROM...")
+  script.Print("Installing the CodeKill...")
 
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
