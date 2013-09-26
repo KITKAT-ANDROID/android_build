@@ -480,7 +480,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.SetPermissionsRecursive("/system/etc/cron", 0, 0, 0755, 0755)
 
   script.Print(" ")
-  script.Print("Installing Colonel...")
+  script.Print("Installing the Kernel Nucleus...")
 
   common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
   common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
