@@ -407,7 +407,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   script.ShowProgress(0.5, 0)
 
-  #says: CODEKILL
+  #says: VANIR
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
@@ -419,19 +419,19 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
-  script.Print("  CodeKill - JellyBean 4.3++ ") 
-  script.Print("    by: CodeKill13")
+  script.Print("  CodeKill - JellyBean 4.3 ") 
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
-  script.Mount(" ")
+  script.Print(" ")
+  script.Mount("/system")
   script.RunBackup("backup")
   script.Unmount("/system")
   script.Print(" ");
   script.Print(" ")
   script.Print(" ")
-  script.Print("Installing the CodeKill...")
+  script.Print("Installing...")
 
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
@@ -444,10 +444,10 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.Mount("/data")
 
   script.Print(" ")
-  script.Print("De Novo Lite: wiping cache...")
-  script.Print("                     dalvik...")
-  script.Print("                     old logs...")
-  script.Print("                     orphaned data...")
+  script.Print("wiping cache...")
+  script.Print("wiping dalvik...")
+  script.Print("wiping old logs...")
+  script.Print("wiping orphaned data...")
   script.DeleteRecursive(["/cache"])
   script.DeleteRecursive(["/data/cron"])
   script.DeleteRecursive(["/data/dalvik-cache"])
@@ -499,17 +499,17 @@ def WriteFullOTAPackage(input_zip, output_zip):
     script.AppendExtra(OPTIONS.extra_script)
 
   script.Print(" ")
-  script.Print("Resurrecting gapps from pre-flash backup")
+  script.Print("GOING IN FOR THE KILL!!!")
   script.ShowProgress(0.2, 10)
   script.RunBackup("restore")
-  script.Print("Zombie gapps in the hizouse")
+  script.Print("")
 
   script.Print(" ")
-  script.Print("CLEAN UP THE BLOOD!")
-  script.Print("YOU SHOULD PROBABLY GET TESTED!");
+  script.Print("CODE ASSASSINATED!")
+  script.Print(" ");
   script.Print(" ")
   script.Print(" ")
-  script.Print(" ")
+  script.Print("HIT MAN FOR HIRE! ")
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
