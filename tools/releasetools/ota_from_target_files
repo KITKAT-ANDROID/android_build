@@ -407,7 +407,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   script.ShowProgress(0.5, 0)
 
-  #says: VANIR
+  #says: CODEKILL
   script.Print(" ")
   script.Print(" ")
   script.Print(" ")
@@ -431,7 +431,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.Print(" ");
   script.Print(" ")
   script.Print(" ")
-  script.Print("Installing...")
+  script.Print("Target Found...")
 
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
@@ -457,7 +457,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.DeleteRecursive(["/data/media/0/Android/data/com.amazon.venezia/files/apks"])
 
   script.Print(" ")
-  script.Print("Copying files")
+  script.Print("Lock and LOAD...")
   script.UnpackPackageDir("system", "/system")
   script.DeleteFiles(["/data/cron/root"])
   script.UnpackPackageDir("data", "/data")
@@ -480,7 +480,7 @@ def WriteFullOTAPackage(input_zip, output_zip):
   script.SetPermissionsRecursive("/system/etc/cron", 0, 0, 0755, 0755)
 
   script.Print(" ")
-  script.Print("Installing the Kernel Nucleus...")
+  script.Print("Installing Ammunitions...")
 
   common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
   common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
@@ -498,18 +498,18 @@ def WriteFullOTAPackage(input_zip, output_zip):
   if OPTIONS.extra_script is not None:
     script.AppendExtra(OPTIONS.extra_script)
 
+  script.Print("Taking Aim... ")
   script.Print(" ")
-  script.Print("GOING IN FOR THE KILL!!!")
   script.ShowProgress(0.2, 10)
   script.RunBackup("restore")
   script.Print("")
 
-  script.Print(" ")
-  script.Print("CODE ASSASSINATED!")
-  script.Print(" ");
+  script.Print("Sqeezing Trigger... ")
   script.Print(" ")
   script.Print(" ")
-  script.Print("HIT MAN FOR HIRE! ")
+  script.Print(" ")
+  script.Print(" ")
+  script.Print("ONE SHOT ONE KILL... ")
 
   script.UnmountAll()
   script.AddToZip(input_zip, output_zip)
