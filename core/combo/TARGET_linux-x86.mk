@@ -86,11 +86,11 @@ endif
 KERNEL_HEADERS := $(KERNEL_HEADERS_COMMON) $(KERNEL_HEADERS_ARCH)
 
 TARGET_GLOBAL_CFLAGS += \
-			-O3 \
+			-O2 \
 			-Ulinux \
 			-Wa,--noexecstack \
 			-Werror=format-security \
-			-D_FORTIFY_SOURCE=2 \
+			-D_FORTIFY_SOURCE=1 \
 			-Wstrict-aliasing=2 \
 			-fPIC -fPIE \
 			-ffunction-sections \
@@ -100,12 +100,8 @@ TARGET_GLOBAL_CFLAGS += \
 			-fno-short-enums \
 			-fstrict-aliasing \
 			-funswitch-loops \
-			-ftree-vectorize \
-			-fvect-cost-model \
 			-funwind-tables \
-			-fstack-protector \
-			-pipe \
-			-mtune=native
+			-fstack-protector
 
 android_config_h := $(call select-android-config-h,target_linux-x86)
 TARGET_ANDROID_CONFIG_CFLAGS := -include $(android_config_h) -I $(dir $(android_config_h))

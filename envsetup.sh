@@ -1,21 +1,21 @@
 function hmm() {
 cat <<EOF
 Invoke ". build/envsetup.sh" from your shell to add the following functions to your environment:
-- lunch:   lunch <product_name>-<build_variant>
-- tapas:   tapas [<App1> <App2> ...] [arm|x86|mips|armv5] [eng|userdebug|user]
-- croot:   Changes directory to the top of the tree.
-- m:       Makes from the top of the tree.
-- mm:      Builds all of the modules in the current directory, but not their dependencies.
-- mmm:     Builds all of the modules in the supplied directories, but not their dependencies.
-- mma:     Builds all of the modules in the current directory, and their dependencies.
-- mmma:    Builds all of the modules in the supplied directories, and their dependencies.
-- cgrep:   Greps on all local C/C++ files.
-- jgrep:   Greps on all local Java files.
-- resgrep: Greps on all local res/*.xml files.
-- godir:   Go to the directory containing a file.
+- lunch:    lunch <product_name>-<build_variant>
+- tapas:    tapas [<App1> <App2> ...] [arm|x86|mips] [eng|userdebug|user]
+- croot:    Changes directory to the top of the tree.
+- groot:    Changes directory to the root of the git project.
+- m:        Makes from the top of the tree.
+- mm:       Builds all of the modules in the current directory.
+- mmm:      Builds all of the modules in the supplied directories.
+- cgrep:    Greps on all local C/C++ files.
+- jgrep:    Greps on all local Java files.
+- resgrep:  Greps on all local res/*.xml files.
+- godir:    Go to the directory containing a file.
 - mka:      Builds using SCHED_BATCH on all processors
 - mbot:     Builds for all devices using the psuedo buildbot
 - mkapush:  Same as mka with the addition of adb pushing to the device.
+- taco:     Builds for a single device using the pseudo buildbot
 - reposync: Parallel repo sync using ionice and SCHED_BATCH
 
 Look at the source to view more functions. The complete list is:
@@ -61,6 +61,14 @@ function check_product()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
+
+    if (echo -n $1 | grep -q -e "^codekill_") ; then
+       CODEKILL_PRODUCT=$(echo -n $1 | sed -e 's/^codekill_//g')
+    else
+       CODEKILL_PRODUCT=
+    fi
+      export CODEKILL_PRODUCT
+
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
         TARGET_BUILD_VARIANT= \
@@ -233,17 +241,17 @@ function settitle()
 
 function addcompletions()
 {
-    local T dir f
-
     # Keep us from trying to run in something that isn't bash.
     if [ -z "${BASH_VERSION}" ]; then
         return
     fi
 
     # Keep us from trying to run in bash that's too old.
-    if [ ${BASH_VERSINFO[0]} -lt 3 ]; then
+    if [ "${BASH_VERSINFO[0]}" -lt 4 ] ; then
         return
     fi
+
+    local T dir f
 
     dir="sdk/bash_completion"
     if [ -d ${dir} ]; then
@@ -441,7 +449,7 @@ function print_lunch_menu()
     echo
     echo "You're building on" $uname
     echo
-    if [ "z${XENONHD_DEVICES_ONLY}" != "z" ]; then
+    if [ "z${CODEKILL_DEVICES_ONLY}" != "z" ]; then
        echo "Breakfast menu... pick a combo:"
     else
        echo "Lunch menu... pick a combo:"
@@ -451,11 +459,11 @@ function print_lunch_menu()
     local choice
     for choice in ${LUNCH_MENU_CHOICES[@]}
     do
-        echo " $i. $choice "
+        echo "     $i. $choice"
         i=$(($i+1))
-    done | column
+    done
 
-	if [ "z${XENONHD_DEVICES_ONLY}" != "z" ]; then
+    if [ "z${CODEKILL_DEVICES_ONLY}" != "z" ]; then
        echo "... and don't forget the bacon!"
     fi
 
@@ -477,10 +485,10 @@ function brunch()
 function breakfast()
 {
     target=$1
-    XENONHD_DEVICES_ONLY="true"
+    CODEKILL_DEVICES_ONLY="true"
     unset LUNCH_MENU_CHOICES
     add_lunch_combo full-eng
-    for f in `/bin/ls vendor/xenonhd/vendorsetup.sh 2> /dev/null`
+    for f in `/bin/ls vendor/codekill/vendorsetup.sh 2> /dev/null`
         do
             echo "including $f"
             . $f
@@ -496,8 +504,8 @@ function breakfast()
             # A buildtype was specified, assume a full device name
             lunch $target
         else
-            # This is probably just the AOKP model name
-            lunch xenonhd_$target-userdebug
+            # This is probably just the CODEKILL model name
+            lunch codekill_$target-userdebug
         fi
     fi
     return $?
@@ -628,6 +636,43 @@ function tapas()
 
     set_stuff_for_environment
     printconfig
+}
+
+function eat()
+{
+    if [ "$OUT" ] ; then
+        MODVERSION=`sed -n -e'/ro\.cm\.version/s/.*=//p' $OUT/system/build.prop`
+        ZIPFILE=update-cm-$MODVERSION-signed.zip
+        ZIPPATH=$OUT/$ZIPFILE
+        if [ ! -f $ZIPPATH ] ; then
+            echo "Nothing to eat"
+            return 1
+        fi
+        adb start-server # Prevent unexpected starting server message from adb get-state in the next line
+        if [ $(adb get-state) != device -a $(adb shell busybox test -e /sbin/recovery 2> /dev/null; echo $?) != 0 ] ; then
+            echo "No device is online. Waiting for one..."
+            echo "Please connect USB and/or enable USB debugging"
+            until [ $(adb get-state) = device -o $(adb shell busybox test -e /sbin/recovery 2> /dev/null; echo $?) = 0 ];do
+                sleep 1
+            done
+            echo "Device Found.."
+        fi
+        echo "Pushing $ZIPFILE to device"
+        if adb push $ZIPPATH /storage/sdcard0/ ; then
+            cat << EOF > /tmp/command
+--update_package=/sdcard/$ZIPFILE
+EOF
+            if adb push /tmp/command /cache/recovery/ ; then
+                echo "Rebooting into recovery for installation"
+                adb reboot recovery
+            fi
+            rm /tmp/command
+        fi
+    else
+        echo "Nothing to eat"
+        return 1
+    fi
+    return $?
 }
 
 function gettop
@@ -809,6 +854,16 @@ function croot()
         \cd $(gettop)
     else
         echo "Couldn't locate the top of the tree.  Try setting TOP."
+    fi
+}
+
+function groot()
+{
+    T=$(git rev-parse --show-cdup)
+    if [ "$T" ]; then
+        cd $(git rev-parse --show-cdup)
+    else
+        echo "Already at the root of the git project."
     fi
 }
 
@@ -1301,7 +1356,7 @@ function mka() {
 function mbot() {
     unset LUNCH_MENU_CHOICES
     croot
-    ./vendor/aokp/bot/deploy.sh
+    ./vendor/codekill/bot/deploy.sh
 }
 
 function mkapush() {
@@ -1354,6 +1409,61 @@ function mkapush() {
             fi
             ;;
     esac
+}
+
+function pstest() {
+    if [ -z "$1" ] || [ "$1" = '--help' ] || [[ "$1" != */* ]]
+    then
+        echo "pstest"
+        echo "to use: pstest PATCH_ID/PATCH_SET"
+        echo "example: pstest 5555/5"
+    else
+        gerrit=gerrit.codekill.co
+        project=`git config --get remote.codekill.projectname`
+        patch="$1"
+        submission=`echo $patch | cut -f1 -d "/" | tail -c 3`
+        git fetch http://$gerrit/$project refs/changes/$submission/$patch && git cherry-pick FETCH_HEAD
+    fi
+}
+
+function pspush_error() {
+        echo "Requires ~/.ssh/config setup with the the following info:"
+        echo "      Host gerrit"
+        echo "        HostName gerrit.codekill.co"
+        echo "        User <your username>"
+        echo "        Port 29418"
+}
+
+function pspush() {
+    if [ -z "$1" ] || [ "$1" = '--help' ]; then
+        echo "pspush"
+        echo "to use:  pspush STATUS"
+        echo "where STATUS: for=regular; drafts=draft; heads=pushed to github"
+        echo "example: pspush for"
+    else
+        checkSshConfig=` grep -rH "gerrit.codekill.co" ~/.ssh/config `
+        if [ "$checkSshConfig" != "" ]; then
+            gerrit=gerrit.codekill.co
+            project=` git config --get remote.codekill.projectname`
+            status="$1"
+            git push gerrit:/$project HEAD:refs/$status/jb-mr2
+        else
+            pspush_error
+        fi
+    fi
+}
+
+function taco() {
+    for sauce in "$@"
+    do
+        breakfast $sauce
+        if [ $? -eq 0 ]; then
+            croot
+            ./vendor/codekill/bot/build_device.sh codekill_$sauce-userdebug $sauce
+        else
+            echo "No such item in brunch menu. Try 'breakfast'"
+        fi
+    done
 }
 
 function reposync() {

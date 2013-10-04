@@ -91,18 +91,6 @@ endif
 ifeq ($(MAKECMDGOALS),clobber)
 dont_bother := true
 endif
-ifeq ($(MAKECMDGOALS),novo)
-dont_bother := true
-endif
-ifeq ($(MAKECMDGOALS),burst)
-dont_bother := true
-endif
-ifeq ($(MAKECMDGOALS),surgical)
-dont_bother := true
-endif
-ifeq ($(MAKECMDGOALS),biopsy)
-dont_bother := true
-endif
 ifeq ($(MAKECMDGOALS),dataclean)
 dont_bother := true
 endif
@@ -150,47 +138,14 @@ $(warning ************************************************************)
 $(error Directory names containing spaces not supported)
 endif
 
-# Check for the correct version of java		
-java_version := $(shell java -version 2>&1 | head -n 1 | grep '^java .*[ "]1\.6[\. "$$]')		
-ifneq ($(shell java -version 2>&1 | grep -i openjdk),)		
-java_version :=		
-endif		
-ifeq ($(strip $(java_version)),)		
-$(info ************************************************************)		
-$(info WTF are you doing?)		
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info Install Oracle Java 6 DICKBAG)
-$(info $(space))		
-$(info Your version is: $(shell java -version 2>&1 | head -n 1).)		
-$(info The correct version is: Java SE 1.6.X)		
-$(info $(space))		
-$(info $(space))		
+# Check for the corrent jdk
+ifneq ($(shell java -version 2>&1 | grep -i openjdk),)
+$(info ************************************************************)
+$(info You are attempting to build with an unsupported JDK.)
 $(info $(space))
 $(info You use OpenJDK but only Sun/Oracle JDK is supported.)
 $(info Please follow the machine setup instructions at)
 $(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
-$(info $(space))
-$(info Continue at your own peril!)
 $(info ************************************************************)
 endif
 
@@ -205,7 +160,7 @@ $(info You are attempting to build with an unsupported version)
 $(info of java.)
 $(info $(space))
 $(info Your version is: $(shell java -version 2>&1 | head -n 1).)
-$(info The correct version is: Java SE 1.6 or 1.7.)
+$(info The correct version is: Java SE 1.6.)
 $(info $(space))
 $(info Please follow the machine setup instructions at)
 $(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
@@ -220,7 +175,7 @@ $(info You are attempting to build with the incorrect version)
 $(info of javac.)
 $(info $(space))
 $(info Your version is: $(shell javac -version 2>&1 | head -n 1).)
-$(info The correct version is: 1.6 or 1.7.)
+$(info The correct version is: 1.6.)
 $(info $(space))
 $(info Please follow the machine setup instructions at)
 $(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
@@ -338,18 +293,18 @@ user_variant := $(filter user userdebug,$(TARGET_BUILD_VARIANT))
 enable_target_debugging := true
 tags_to_install :=
 ifneq (,$(user_variant))
-  # Security is for bitches
+  # Target is secure in user builds.
   ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
 
-  ifeq ($(user_variant),eng)
+  # Secure adb connections
+  ADDITIONAL_DEFAULT_PROPERTIES += ro.adb.secure=1
+
+  ifeq ($(user_variant),userdebug)
     # Pick up some extra useful tools
     tags_to_install += debug
 
-    # this makes things a bit spammy
-    enable_target_debugging := true
-
     # Enable Dalvik lock contention logging for userdebug builds.
-    ADDITIONAL_BUILD_PROPERTIES += dalvik.vm.lockprof.threshold=850
+    ADDITIONAL_BUILD_PROPERTIES += dalvik.vm.lockprof.threshold=500
   else
     # Disable debugging in plain user builds.
     enable_target_debugging :=
@@ -448,6 +403,7 @@ $(if $(filter samples tests,$(1)),,true)
 endef
 endif
 
+
 # If they only used the modifier goals (showcommands, etc), we'll actually
 # build the default target.
 ifeq ($(filter-out $(INTERNAL_MODIFIER_TARGETS),$(MAKECMDGOALS)),)
@@ -521,11 +477,7 @@ else # ONE_SHOT_MAKEFILE
 subdir_makefiles := \
 	$(shell build/tools/findleaves.py --prune=out --prune=.repo --prune=.git $(subdirs) Android.mk)
 
-$(foreach subdir_makefile, $(subdir_makefiles), \
-$(info Including $(subdir_makefile)) \
-$(eval include $(subdir_makefile)) \
-)
-subdir_makefile :=
+include $(subdir_makefiles)
 
 endif # ONE_SHOT_MAKEFILE
 
@@ -946,7 +898,7 @@ $(foreach module,$(sample_MODULES),$(eval $(call \
 sample_ADDITIONAL_INSTALLED := \
         $(filter-out $(modules_to_install) $(modules_to_check) $(ALL_PREBUILT),$(sample_MODULES))
 samplecode: $(sample_APKS_COLLECTION)
-	@echo -e ${CL_GRN}"Collect sample code apks:"${CL_RST}" $^"
+	@echo "Collect sample code apks: $^"
 	# remove apks that are not intended to be installed.
 	rm -f $(sample_ADDITIONAL_INSTALLED)
 
@@ -956,48 +908,17 @@ findbugs: $(INTERNAL_FINDBUGS_HTML_TARGET) $(INTERNAL_FINDBUGS_XML_TARGET)
 .PHONY: clean
 clean:
 	@rm -rf $(OUT_DIR)/*
-	@echo -e ${CL_GRN}"Entire build directory removed."${CL_RST}
+	@echo "Entire build directory removed."
 
 .PHONY: clobber
 clobber: clean
-
-# This should be almost as good as a clobber but keeping many of the time intensive files - DHO
-.PHONY: novo
-novo:
-	@rm -rf $(OUT_DIR)/target/*
-	@echo -e ${CL_GRN}"Target directory removed."${CL_RST}
-
-# This is designed for building in memory.  Clean products, but keep common files - DHO
-.PHONY: burst
-burst:
-	@rm -rf $(OUT_DIR)/target/product/*
-	@echo -e ${CL_GRN}"Product directory removed."${CL_RST}
-
-# This is designed for building in memory + keeping smaller build folders + common files - DHO
-.PHONY: surgical
-surgical:
-	@rm -rf $(OUT_DIR)/target/product/*/obj/
-	@rm -rf $(OUT_DIR)/target/product/*/symbols/
-	@rm -rf $(OUT_DIR)/target/product/*/codekill_*-ota-eng.dho.zip
-	@rm -rf $(OUT_DIR)/target/product/*/system.img
-	@rm -rf $(OUT_DIR)/target/product/*/userdata.img
-	@echo -e ${CL_GRN}"Surgical Strike Completed."${CL_RST}
-
-# This is designed for building on SSD but to whittle away at the bulk file size - DHO
-.PHONY: biopsy
-biopsy:
-	@rm -rf $(OUT_DIR)/target/product/*/codekill_*-ota-eng.dho.zip
-	@rm -rf $(OUT_DIR)/target/product/*/system.img
-	@rm -rf $(OUT_DIR)/target/product/*/userdata.img
-	@rm -rf $(OUT_DIR)/target/product/*/system/app/*
-	@echo -e ${CL_GRN}"Surgical Strike Completed."${CL_RST}
 
 # The rules for dataclean and installclean are defined in cleanbuild.mk.
 
 #xxx scrape this from ALL_MODULE_NAME_TAGS
 .PHONY: modules
 modules:
-	@echo -e ${CL_GRN}"Available sub-modules:"${CL_RST}
+	@echo "Available sub-modules:"
 	@echo "$(call module-names-for-tag-list,$(ALL_MODULE_TAGS))" | \
 	      tr -s ' ' '\n' | sort -u | $(COLUMN)
 

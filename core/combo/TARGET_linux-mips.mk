@@ -70,10 +70,8 @@ TARGET_NO_UNDEFINED_LDFLAGS := -Wl,--no-undefined
 
 TARGET_mips_CFLAGS :=	-O2 \
 			-fomit-frame-pointer \
-			-fstrict-aliasing    \
-			-funswitch-loops \
-			-fvect-cost-model \
-			-ftree-vectorize 
+			-fno-strict-aliasing    \
+			-funswitch-loops
 
 # Set FORCE_MIPS_DEBUGGING to "true" in your buildspec.mk
 # or in your environment to gdb debugging easier.
@@ -91,7 +89,7 @@ TARGET_GLOBAL_CFLAGS += \
 			-funwind-tables \
 			-Wa,--noexecstack \
 			-Werror=format-security \
-			-D_FORTIFY_SOURCE=2 \
+			-D_FORTIFY_SOURCE=1 \
 			$(arch_variant_cflags)
 
 android_config_h := $(call select-android-config-h,linux-mips)
