@@ -427,7 +427,6 @@ class SignApk {
             if (data.length < 2)
                 throw new IOException("Less than two bytes written to footer");
             write(data, 0, data.length - 2);
-
         }
 
         public byte[] getTail() {
@@ -525,7 +524,6 @@ class SignApk {
                    CMSException {
             SignApk.writeSignatureBlock(this, publicKey, privateKey, temp);
         }
-
 
         public WholeFileSignerOutputStream getSigner() {
             return signer;

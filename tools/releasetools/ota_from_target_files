@@ -55,9 +55,6 @@ Usage:  ota_from_target_files [flags] input_target_files output_ota_package
   --override_device <device>
       Override device-specific asserts. Can be a comma-separated list.
 
-  --persist <true|false>
-      Specify whether to enable persistence across installs (on by default).
-
   --no_assert <true|false>
       Including this will turn device asserts off.
 
@@ -98,7 +95,6 @@ OPTIONS.extra_script = None
 OPTIONS.aslr_mode = True
 OPTIONS.worker_threads = 3
 OPTIONS.override_device = 'auto'
-OPTIONS.persist = True
 OPTIONS.no_assert = False
 
 def MostPopularKey(d, default):
@@ -377,16 +373,6 @@ fi
   return Item.Get("system/etc/install-recovery.sh", dir=False)
 
 
-def CopyInstallTools(output_zip):
-  oldcwd = os.getcwd()
-  os.chdir(os.getenv('OUT'))
-  for root, subdirs, files in os.walk("install"):
-    for f in files:
-      p = os.path.join(root, f)
-      output_zip.write(p, p)
-  os.chdir(oldcwd)
-
-
 def WriteFullOTAPackage(input_zip, output_zip):
   # TODO: how to determine this?  We don't know what version it will
   # be installed on top of.  For now, we expect the API just won't
@@ -416,51 +402,26 @@ def WriteFullOTAPackage(input_zip, output_zip):
 
   device_specific.FullOTA_InstallBegin()
 
-  CopyInstallTools(output_zip)
-  script.UnpackPackageDir("install", "/tmp/install")
-  script.SetPermissionsRecursive("/tmp/install", 0, 0, 0755, 0644)
-  script.SetPermissionsRecursive("/tmp/install/bin", 0, 0, 0755, 0755)
+  script.ShowProgress(0.2, 0)
 
-  script.ShowProgress(0.5, 0)
+
 
   if OPTIONS.wipe_user_data:
     script.FormatPartition("/data")
 
-
-
-  codekillv = GetBuildProp("ro.codekill.version", OPTIONS.info_dict)
-  if os.getenv("CODEKILL_BUILD") is not None:
-    build = ' '.join(codekillv.split('_')[3].split('-')).title()
-    script.Print("*   Version: %s"%(build));
-  elif os.getenv("CODEKILL_NIGHTLY") is not None:
-    build = ' '.join(codekillv.split('_')[2:]).title()
-    script.Print("*   Version: %s"%(build));
-  else:
-    build = GetBuildProp("ro.build.date", OPTIONS.info_dict)
-    script.Print("******************************************");
-    script.Print("************ UNOFFICIAL BUILD ************");
-    script.Print("******************************************");
-    script.Print("*   Compiled: %s"%(build));
-
-  device = GetBuildProp("ro.product.device", OPTIONS.info_dict)
-  model = GetBuildProp("ro.product.model", OPTIONS.info_dict)
-  script.Print("*   Device: %s (%s)"%(model, device));
-  script.Print("******************************************");
-
   if "selinux_fc" in OPTIONS.info_dict:
     WritePolicyConfig(OPTIONS.info_dict["selinux_fc"], output_zip)
 
-  if OPTIONS.persist:
-    script.Mount("/system")
-    script.RunPersist("save")
-    script.Unmount("/system")
-
+  script.Print("Wiping /system...")
   script.FormatPartition("/system")
+  script.Print("Installing system files...")
   script.Mount("/system")
   script.UnpackPackageDir("system", "/system")
+  script.ShowProgress(0.4, 0)
 
   symlinks = CopySystemFiles(input_zip, output_zip)
   script.MakeSymlinks(symlinks)
+  script.ShowProgress(0.2, 0)
 
   boot_img = common.GetBootableImage("boot.img", "boot.img",
                                      OPTIONS.input_tmp, "BOOT")
@@ -468,14 +429,10 @@ def WriteFullOTAPackage(input_zip, output_zip):
   Item.GetMetadata(input_zip)
   Item.Get("system").SetPermissions(script)
 
-  if OPTIONS.persist:
-    script.RunPersist("restore")
-
   common.CheckSize(boot_img.data, "boot.img", OPTIONS.info_dict)
   common.ZipWriteStr(output_zip, "boot.img", boot_img.data)
-  script.ShowProgress(0.2, 0)
 
-  script.ShowProgress(0.2, 10)
+  script.ShowProgress(0.1, 10)
   script.WriteRawImage("/boot", "boot.img")
 
   script.ShowProgress(0.1, 0)
@@ -745,6 +702,10 @@ def WriteIncrementalOTAPackage(target_zip, source_zip, output_zip):
     script.Print("Unpacking new files...")
     script.UnpackPackageDir("system", "/system")
 
+  if updating_recovery:
+    script.Print("Unpacking new recovery...")
+    script.UnpackPackageDir("recovery", "/system")
+
   script.Print("Symlinks and permissions...")
 
   # Create all the symlinks that don't already exist, or point to
@@ -810,8 +771,6 @@ def main(argv):
         OPTIONS.aslr_mode = False
     elif o in ("--override_device"):
       OPTIONS.override_device = a
-    elif o in ("--persist"):
-      OPTIONS.persist = a
     elif o in ("--worker_threads"):
       OPTIONS.worker_threads = int(a)
     else:
@@ -830,7 +789,6 @@ def main(argv):
                                               "worker_threads=",
                                               "aslr_mode=",
                                               "override_device=",
-                                              "persist=",
                                               ],
                              extra_option_handler=option_handler)
 

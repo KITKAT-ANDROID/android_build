@@ -33,16 +33,24 @@ PRODUCT_PACKAGES := \
     InputDevices \
     LatinIME \
     Launcher2 \
+    Music \
     MusicFX \
     OneTimeInitializer \
     Provision \
     Phone \
+    QuickSearchBox \
     Settings \
     SystemUI \
     CalendarProvider \
     bluetooth-health \
     hostapd \
-    wpa_supplicant.conf
+    wpa_supplicant.conf \
+	busybox \
+    rsync \
+    libncurses \
+    nano \
+    lsof \
+    bash 
 
 PRODUCT_PACKAGES += \
     audio \
