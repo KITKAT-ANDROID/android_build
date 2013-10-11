@@ -1398,7 +1398,7 @@ ifneq ($(TARGET_CUSTOM_RELEASETOOL),)
 	@echo "Running releasetool"
 	$(hide) OTAPACKAGE=$(INTERNAL_OTA_PACKAGE_TARGET) $(TARGET_CUSTOM_RELEASETOOL)
 else
-	$(hide) ./vendor/codekill/tools/squisher
+	$(hide) ./vendor/insomnia/tools/squisher
 endif
 # -----------------------------------------------------------------
 # The update package
