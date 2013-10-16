@@ -47,11 +47,6 @@ PRODUCT_COPY_FILES += \
 
 #----------------- originally from core.mk ----------------
 
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.config.notification_sound=OnTheHunt.ogg \
-    ro.config.alarm_alert=Alarm_Classic.ogg
-
-# Please keep this list sorted alphabetically
 PRODUCT_PACKAGES += \
     ApplicationsProvider \
     ContactsProvider \
@@ -64,7 +59,6 @@ PRODUCT_PACKAGES += \
     Shell \
     TelephonyProvider \
     UserDictionaryProvider \
-    abcc \
     apache-xml \
     audio \
     bouncycastle \
@@ -72,7 +66,6 @@ PRODUCT_PACKAGES += \
     cacerts \
     com.android.location.provider \
     com.android.location.provider.xml \
-    conscrypt \
     core \
     core-junit \
     dalvikvm \
@@ -86,6 +79,7 @@ PRODUCT_PACKAGES += \
     ext \
     framework-res \
     hprof-conv \
+    icu.dat \
     installd \
     ip \
     ip-up-vpn \
@@ -144,7 +138,6 @@ PRODUCT_PACKAGES += \
     libz \
     mdnsd \
     network \
-    okhttp \
     pand \
     requestsync \
     screencap \
@@ -169,6 +162,10 @@ PRODUCT_PACKAGES += \
     Provision \
     hostapd \
     wpa_supplicant.conf
+
+
+PRODUCT_PACKAGES += \
+    icu.dat
 
 PRODUCT_PACKAGES += \
     librs_jni \
@@ -200,13 +197,6 @@ PRODUCT_PACKAGES += \
     libdrmframework \
     libdrmframework_jni \
     WAPPushManager
-
-
-# Additional settings used in all AOSP builds
-PRODUCT_PROPERTY_OVERRIDES += \
-    ro.com.android.dateformat=MM-dd-yyyy \
-    ro.config.ringtone=Ring_Synth_04.ogg \
-    ro.config.notification_sound=pixiedust.ogg
 
 $(call inherit-product, $(SRC_TARGET_DIR)/product/base.mk)
 $(call inherit-product-if-exists, frameworks/base/data/keyboards/keyboards.mk)

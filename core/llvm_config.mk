@@ -64,42 +64,24 @@ ifeq ($(TARGET_ARCH),mips)
     -mtune=mips32r2 \
     -march=mips32 \
     -mtune=mips32 \
-    -msynci \
-    -mno-fused-madd
+    -msynci
 endif
 ifeq ($(TARGET_ARCH),x86)
   RS_TRIPLE := i686-unknown-linux
   CLANG_CONFIG_EXTRA_ASFLAGS += \
     -target i686-linux-android \
     -nostdlibinc \
-    -B$(TARGET_TOOLCHAIN_ROOT)/x86_64-linux-android/bin
+    -B$(TARGET_TOOLCHAIN_ROOT)/i686-linux-android/bin
   CLANG_CONFIG_EXTRA_CFLAGS += $(CLANG_CONFIG_EXTRA_ASFLAGS)
   CLANG_CONFIG_EXTRA_LDFLAGS += \
     -target i686-linux-android \
-    -B$(TARGET_TOOLCHAIN_ROOT)/x86_64-linux-android/bin
+    -B$(TARGET_TOOLCHAIN_ROOT)/i686-linux-android/bin
   CLANG_CONFIG_UNKNOWN_CFLAGS += \
     -finline-limit=300 \
     -fno-inline-functions-called-once \
     -mfpmath=sse \
     -mbionic
 endif
-ifeq ($(TARGET_ARCH),x86_64)
-  RS_TRIPLE := x86_64-unknown-linux
-  CLANG_CONFIG_EXTRA_ASFLAGS += \
-    -target x86_64-linux-android \
-    -nostdlibinc \
-    -B$(TARGET_TOOLCHAIN_ROOT)/x86_64-linux-android/bin
-  CLANG_CONFIG_EXTRA_CFLAGS += $(CLANG_CONFIG_EXTRA_ASFLAGS)
-  CLANG_CONFIG_EXTRA_LDFLAGS += \
-    -target x86_64-linux-android \
-    -B$(TARGET_TOOLCHAIN_ROOT)/x86_64-linux-android/bin
-  CLANG_CONFIG_UNKNOWN_CFLAGS += \
-    -finline-limit=300 \
-    -fno-inline-functions-called-once \
-    -mfpmath=sse \
-    -mbionic
-endif
-
 
 CLANG_CONFIG_EXTRA_TARGET_C_INCLUDES := external/clang/lib/include $(TARGET_OUT_HEADERS)/clang
 
@@ -114,11 +96,9 @@ TARGET_thumb_CLANG_CFLAGS += $(filter-out $(CLANG_CONFIG_UNKNOWN_CFLAGS),$(TARGE
 $(call clang-flags-subst,-march=armv5te,-march=armv5t)
 $(call clang-flags-subst,-march=armv5e,-march=armv5)
 
-# clang does not support -Wno-psabi, -Wno-unused-but-set-variable, and
-# -Wno-unused-but-set-parameter
+# clang does not support -Wno-psabi and -Wno-unused-but-set-variable
 $(call clang-flags-subst,-Wno-psabi,)
 $(call clang-flags-subst,-Wno-unused-but-set-variable,)
-$(call clang-flags-subst,-Wno-unused-but-set-parameter,)
 
 # clang does not support -mcpu=cortex-a15 yet - fall back to armv7-a for now
 $(call clang-flags-subst,-mcpu=cortex-a15,-march=armv7-a)

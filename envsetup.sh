@@ -57,6 +57,14 @@ function check_product()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
+
+    if (echo -n $1 | grep -q -e "^insomnia_") ; then
+        INSOMNIA_BUILD=$(echo -n $1 | sed -e 's/^insomnia_//g')
+    else
+        INSOMNIA_BUILD=
+    fi
+    export INSOMNIA_BUILD
+
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
         TARGET_BUILD_VARIANT= \
@@ -126,13 +134,9 @@ function setpaths()
     export ANDROID_EABI_TOOLCHAIN=
     local ARCH=$(get_build_var TARGET_ARCH)
     case $ARCH in
-        x86) toolchaindir=x86/x86_64-linux-android-$targetgccversion/bin
-            ;;
-        x86_64) toolchaindir=x86/x86_64-linux-android-$targetgccversion/bin
+        x86) toolchaindir=x86/i686-linux-android-$targetgccversion/bin
             ;;
         arm) toolchaindir=arm/arm-linux-androideabi-$targetgccversion/bin
-            ;;
-        aarch64) toolchaindir=aarch64/aarch64-linux-android-$targetgccversion/bin
             ;;
         mips) toolchaindir=mips/mipsel-linux-android-$targetgccversion/bin
             ;;
@@ -209,8 +213,6 @@ function set_stuff_for_environment()
     set_sequence_number
 
     export ANDROID_BUILD_TOP=$(gettop)
-    # With this environment variable new GCC can apply colors to warnings/errors
-    export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
 }
 
 function set_sequence_number()
@@ -435,7 +437,6 @@ function add_lunch_combo()
 add_lunch_combo aosp_arm-eng
 add_lunch_combo aosp_x86-eng
 add_lunch_combo aosp_mips-eng
-add_lunch_combo aosp_x86_64-eng
 add_lunch_combo vbox_x86-eng
 
 function print_lunch_menu()
@@ -543,6 +544,7 @@ function _lunch()
 }
 complete -F _lunch lunch
 
+
 # Configures the build to build unbundled apps.
 # Run tapas with one ore more app names (from LOCAL_PACKAGE_NAME)
 function tapas()
@@ -608,26 +610,11 @@ function gettop
     fi
 }
 
-# Return driver for "make", if any (eg. static analyzer)
-function getdriver()
-{
-    local T="$1"
-    test "$WITH_STATIC_ANALYZER" = "0" && unset WITH_STATIC_ANALYZER
-    if [ -n "$WITH_STATIC_ANALYZER" ]; then
-        echo "\
-$T/prebuilts/clang/linux-x86/host/3.3/tools/scan-build/scan-build \
---use-analyzer $T/prebuilts/clang/linux-x86/host/3.3/bin/analyzer \
---status-bugs \
---top=$T"
-    fi
-}
-
 function m()
 {
-    local T=$(gettop)
-    local DRV=$(getdriver $T)
+    T=$(gettop)
     if [ "$T" ]; then
-        $DRV make -C $T -f build/core/main.mk $@
+        make -C $T -f build/core/main.mk $@
     else
         echo "Couldn't locate the top of the tree.  Try setting TOP."
     fi
@@ -652,14 +639,13 @@ function findmakefile()
 
 function mm()
 {
-    local T=$(gettop)
-    local DRV=$(getdriver $T)
     # If we're sitting in the root of the build tree, just do a
     # normal make.
     if [ -f build/core/envsetup.mk -a -f Makefile ]; then
-        $DRV make $@
+        make $@
     else
         # Find the closest Android.mk file.
+        T=$(gettop)
         local M=$(findmakefile)
         # Remove the path to top as the makefilepath needs to be relative
         local M=`echo $M|sed 's:'$T'/::'`
@@ -668,15 +654,14 @@ function mm()
         elif [ ! "$M" ]; then
             echo "Couldn't locate a makefile from the current directory."
         else
-            ONE_SHOT_MAKEFILE=$M $DRV make -C $T -f build/core/main.mk all_modules $@
+            ONE_SHOT_MAKEFILE=$M make -C $T -f build/core/main.mk all_modules $@
         fi
     fi
 }
 
 function mmm()
 {
-    local T=$(gettop)
-    local DRV=$(getdriver $T)
+    T=$(gettop)
     if [ "$T" ]; then
         local MAKEFILE=
         local MODULES=
@@ -716,7 +701,7 @@ function mmm()
                 fi
             fi
         done
-        ONE_SHOT_MAKEFILE="$MAKEFILE" $DRV make -C $T -f build/core/main.mk $DASH_ARGS $MODULES $ARGS
+        ONE_SHOT_MAKEFILE="$MAKEFILE" make -C $T -f build/core/main.mk $DASH_ARGS $MODULES $ARGS
     else
         echo "Couldn't locate the top of the tree.  Try setting TOP."
     fi
@@ -724,23 +709,21 @@ function mmm()
 
 function mma()
 {
-  local T=$(gettop)
-  local DRV=$(getdriver $T)
   if [ -f build/core/envsetup.mk -a -f Makefile ]; then
-    $DRV make $@
+    make $@
   else
+    T=$(gettop)
     if [ ! "$T" ]; then
       echo "Couldn't locate the top of the tree.  Try setting TOP."
     fi
     local MY_PWD=`PWD= /bin/pwd|sed 's:'$T'/::'`
-    $DRV make -C $T -f build/core/main.mk $@ all_modules BUILD_MODULES_IN_PATHS="$MY_PWD"
+    make -C $T -f build/core/main.mk $@ all_modules BUILD_MODULES_IN_PATHS="$MY_PWD"
   fi
 }
 
 function mmma()
 {
-  local T=$(gettop)
-  local DRV=$(getdriver $T)
+  T=$(gettop)
   if [ "$T" ]; then
     local DASH_ARGS=$(echo "$@" | awk -v RS=" " -v ORS=" " '/^-.*$/')
     local DIRS=$(echo "$@" | awk -v RS=" " -v ORS=" " '/^[^-].*$/')
@@ -767,7 +750,7 @@ function mmma()
         esac
       fi
     done
-    $DRV make -C $T -f build/core/main.mk $DASH_ARGS $ARGS all_modules BUILD_MODULES_IN_PATHS="$MODULE_PATHS"
+    make -C $T -f build/core/main.mk $DASH_ARGS $ARGS all_modules BUILD_MODULES_IN_PATHS="$MODULE_PATHS"
   else
     echo "Couldn't locate the top of the tree.  Try setting TOP."
   fi
@@ -866,7 +849,7 @@ function gdbclient()
    local ARCH=$(get_build_var TARGET_ARCH)
    local GDB
    case "$ARCH" in
-       x86) GDB=x86_64-linux-android-gdb;;
+       x86) GDB=i686-linux-android-gdb;;
        arm) GDB=arm-linux-androideabi-gdb;;
        mips) GDB=mipsel-linux-android-gdb;;
        *) echo "Unknown arch $ARCH"; return 1;;
@@ -1258,6 +1241,49 @@ function godir () {
     \cd $T/$pathname
 }
 
+function cleantree () {
+    read -p "Are you sure you want to erase local changes? (y|N)" ans
+    test "$ans" = "Y" || test "$ans" = "y" || return
+    if [ ! "$ANDROID_BUILD_TOP" ]; then
+        export ANDROID_BUILD_TOP=$(gettop)
+    fi
+    if [ "$(pwd)" != "$ANDROID_BUILD_TOP" ]; then
+        cd "$ANDROID_BUILD_TOP"
+    fi
+    echo "Cleaning tree...This will take a few minutes"
+    repo forall -c git reset --hard >/dev/null 2>&1
+    repo forall -c git clean -fd >/dev/null 2>&1
+    repo sync -fd >/dev/null 2>&1
+    echo "Done"
+}
+
+function aospremote() {
+    git remote rm aosp 2> /dev/null
+    if [ ! -d .git ]
+    then
+        echo .git directory not found. Please run this from the root directory of the Android repository you wish to set up.
+    fi
+    if [ ! "$ANDROID_BUILD_TOP" ]; then
+        export ANDROID_BUILD_TOP=$(gettop)
+    fi
+    PROJECT=`pwd | sed s#$ANDROID_BUILD_TOP/##g`
+    if (echo $PROJECT | grep -qv "^device")
+    then
+        PFX="platform/"
+    fi
+    git remote add aosp https://android.googlesource.com/$PFX$PROJECT
+    echo "Remote 'aosp' created"
+}
+
+function repodiff() {
+    if [ -z "$*" ]; then
+        echo "Usage: repodiff <ref-from> [[ref-to] [--numstat]]"
+        return
+    fi
+    diffopts=$* repo forall -c \
+      'echo "$REPO_PATH ($REPO_REMOTE)"; git diff ${diffopts} 2>/dev/null ;'
+}
+
 # Force JAVA_HOME to point to java 1.6 if it isn't already set
 function set_java_home() {
     if [ ! "$JAVA_HOME" ]; then
@@ -1296,8 +1322,7 @@ if [ "x$SHELL" != "x/bin/bash" ]; then
 fi
 
 # Execute the contents of any vendorsetup.sh files we can find.
-for f in `test -d device && find device -maxdepth 4 -name 'vendorsetup.sh' 2> /dev/null` \
-         `test -d vendor && find vendor -maxdepth 4 -name 'vendorsetup.sh' 2> /dev/null`
+for f in `/bin/ls vendor/*/vendorsetup.sh vendor/*/*/vendorsetup.sh 2> /dev/null`
 do
     echo "including $f"
     . $f

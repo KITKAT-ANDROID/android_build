@@ -264,7 +264,6 @@ $(proto_java_sources_file_stamp): PRIVATE_PROTO_JAVA_OUTPUT_OPTION := --java_out
   endif
 endif
 $(proto_java_sources_file_stamp): PRIVATE_PROTOC_FLAGS := $(LOCAL_PROTOC_FLAGS)
-$(proto_java_sources_file_stamp): PRIVATE_PROTO_JAVA_OUTPUT_PARAMS := $(LOCAL_PROTO_JAVA_OUTPUT_PARAMS)
 $(proto_java_sources_file_stamp) : $(proto_sources_fullpath) $(PROTOC)
 	$(call transform-proto-to-java)
 
@@ -518,20 +517,20 @@ ifndef LOCAL_UNINSTALLABLE_MODULE
 $(LOCAL_INSTALLED_MODULE): PRIVATE_POST_INSTALL_CMD := $(LOCAL_POST_INSTALL_CMD)
 ifneq ($(LOCAL_ACP_UNAVAILABLE),true)
 $(LOCAL_INSTALLED_MODULE): $(LOCAL_BUILT_MODULE) | $(ACP)
-	@echo "Install: $@"
+	@echo -e ${CL_INS}"Install: $@"${CL_RST}
 	$(copy-file-to-new-target)
 	$(PRIVATE_POST_INSTALL_CMD)
 else
 $(LOCAL_INSTALLED_MODULE): $(LOCAL_BUILT_MODULE)
-	@echo "Install: $@"
+	@echo -e ${CL_INS}"Install: $@"${CL_RST}
 	$(copy-file-to-target-with-cp)
 endif
 
 ifdef LOCAL_DEX_PREOPT
 installed_odex := $(basename $(LOCAL_INSTALLED_MODULE)).odex
 built_odex := $(basename $(LOCAL_BUILT_MODULE)).odex
-$(installed_odex) : $(built_odex) $(LOCAL_BUILT_MODULE) | $(ACP)
-	@echo "Install: $@"
+$(installed_odex) : $(built_odex) | $(ACP)
+	@echo -e ${CL_INS}"Install: $@"${CL_RST}
 	$(copy-file-to-target)
 
 $(LOCAL_INSTALLED_MODULE) : $(installed_odex)

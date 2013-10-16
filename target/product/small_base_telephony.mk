@@ -14,18 +14,20 @@
 # limitations under the License.
 #
 
-# This is a build configuration for the product aspects that
-# are specific to the emulator.
-
-PRODUCT_PROPERTY_OVERRIDES := \
-    ro.ril.hsxpa=1 \
-    ro.ril.gprsclass=10 \
-    ro.adb.qemud=1
-
-PRODUCT_COPY_FILES := \
-    device/generic/goldfish/data/etc/apns-conf.xml:system/etc/apns-conf.xml \
-    device/generic/goldfish/camera/media_profiles.xml:system/etc/media_profiles.xml \
-    device/generic/goldfish/camera/media_codecs.xml:system/etc/media_codecs.xml
+# This is a build configuration for a full-featured build of the
+# Open-Source part of the tree. It's geared toward a US-centric
+# build quite specifically for the emulator, and might not be
+# entirely appropriate to inherit from for on-device configurations.
 
 PRODUCT_PACKAGES := \
-    audio.primary.goldfish
+    VoiceDialer
+
+PRODUCT_PROPERTY_OVERRIDES := \
+    keyguard.no_require_sim=true \
+    ro.com.android.dataroaming=false
+
+PRODUCT_COPY_FILES := \
+    device/generic/goldfish/data/etc/apns-conf.xml:system/etc/apns-conf.xml
+
+$(call inherit-product, $(SRC_TARGET_DIR)/product/small_base.mk)
+$(call inherit-product, $(SRC_TARGET_DIR)/product/telephony.mk)
