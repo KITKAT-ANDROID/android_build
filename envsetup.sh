@@ -13,6 +13,10 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - jgrep:   Greps on all local Java files.
 - resgrep: Greps on all local res/*.xml files.
 - godir:   Go to the directory containing a file.
+- mka:      Builds using SCHED_BATCH on all processors
+- mbot:     Builds for all devices using the psuedo buildbot
+- mkapush:  Same as mka with the addition of adb pushing to the device.
+- reposync: Parallel repo sync using ionice and SCHED_BATCH
 
 Look at the source to view more functions. The complete list is:
 EOF
@@ -57,14 +61,6 @@ function check_product()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
-
-    if (echo -n $1 | grep -q -e "^insomnia_") ; then
-        INSOMNIA_BUILD=$(echo -n $1 | sed -e 's/^insomnia_//g')
-    else
-        INSOMNIA_BUILD=
-    fi
-    export INSOMNIA_BUILD
-
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
         TARGET_BUILD_VARIANT= \
@@ -445,18 +441,69 @@ function print_lunch_menu()
     echo
     echo "You're building on" $uname
     echo
-    echo "Lunch menu... pick a combo:"
+    if [ "z${INSOMNIA_DEVICES_ONLY}" != "z" ]; then
+       echo "Breakfast menu... pick a combo:"
+    else
+       echo "Lunch menu... pick a combo:"
+    fi
 
     local i=1
     local choice
     for choice in ${LUNCH_MENU_CHOICES[@]}
     do
-        echo "     $i. $choice"
+        echo " $i. $choice "
         i=$(($i+1))
-    done
+    done | column
+
+	if [ "z${INSOMNIA_DEVICES_ONLY}" != "z" ]; then
+       echo "... and don't forget the bacon!"
+    fi
 
     echo
 }
+
+function brunch()
+{
+    breakfast $*
+    if [ $? -eq 0 ]; then
+        mka bacon
+    else
+        echo "No such item in brunch menu. Try 'breakfast'"
+        return 1
+    fi
+    return $?
+}
+
+function breakfast()
+{
+    target=$1
+    INSOMNIA_DEVICES_ONLY="true"
+    unset LUNCH_MENU_CHOICES
+    add_lunch_combo full-eng
+    for f in `/bin/ls vendor/codekill/vendorsetup.sh 2> /dev/null`
+        do
+            echo "including $f"
+            . $f
+        done
+    unset f
+
+    if [ $# -eq 0 ]; then
+        # No arguments, so let's have the full menu
+        lunch
+    else
+        echo "z$target" | grep -q "-"
+        if [ $? -eq 0 ]; then
+            # A buildtype was specified, assume a full device name
+            lunch $target
+        else
+            # This is probably just the AOKP model name
+            lunch INSOMNIA_$target-userdebug
+        fi
+    fi
+    return $?
+}
+
+alias bib=breakfast
 
 function lunch()
 {
@@ -543,7 +590,6 @@ function _lunch()
     return 0
 }
 complete -F _lunch lunch
-
 
 # Configures the build to build unbundled apps.
 # Run tapas with one ore more app names (from LOCAL_PACKAGE_NAME)
@@ -1241,47 +1287,84 @@ function godir () {
     \cd $T/$pathname
 }
 
-function cleantree () {
-    read -p "Are you sure you want to erase local changes? (y|N)" ans
-    test "$ans" = "Y" || test "$ans" = "y" || return
-    if [ ! "$ANDROID_BUILD_TOP" ]; then
-        export ANDROID_BUILD_TOP=$(gettop)
-    fi
-    if [ "$(pwd)" != "$ANDROID_BUILD_TOP" ]; then
-        cd "$ANDROID_BUILD_TOP"
-    fi
-    echo "Cleaning tree...This will take a few minutes"
-    repo forall -c git reset --hard >/dev/null 2>&1
-    repo forall -c git clean -fd >/dev/null 2>&1
-    repo sync -fd >/dev/null 2>&1
-    echo "Done"
+function mka() {
+    case `uname -s` in
+        Darwin)
+            make -j `sysctl hw.ncpu|cut -d" " -f2` "$@"
+            ;;
+        *)
+            schedtool -B -n 1 -e ionice -n 1 make -j$(cat /proc/cpuinfo | grep "^processor" | wc -l) "$@"
+            ;;
+    esac
 }
 
-function aospremote() {
-    git remote rm aosp 2> /dev/null
-    if [ ! -d .git ]
-    then
-        echo .git directory not found. Please run this from the root directory of the Android repository you wish to set up.
-    fi
-    if [ ! "$ANDROID_BUILD_TOP" ]; then
-        export ANDROID_BUILD_TOP=$(gettop)
-    fi
-    PROJECT=`pwd | sed s#$ANDROID_BUILD_TOP/##g`
-    if (echo $PROJECT | grep -qv "^device")
-    then
-        PFX="platform/"
-    fi
-    git remote add aosp https://android.googlesource.com/$PFX$PROJECT
-    echo "Remote 'aosp' created"
+function mbot() {
+    unset LUNCH_MENU_CHOICES
+    croot
+    ./vendor/aokp/bot/deploy.sh
 }
 
-function repodiff() {
-    if [ -z "$*" ]; then
-        echo "Usage: repodiff <ref-from> [[ref-to] [--numstat]]"
-        return
-    fi
-    diffopts=$* repo forall -c \
-      'echo "$REPO_PATH ($REPO_REMOTE)"; git diff ${diffopts} 2>/dev/null ;'
+function mkapush() {
+    # There's got to be a better way to do this stupid shit.
+    case `uname -s` in
+        Darwin)
+            if [ ! -f $ANDROID_PRODUCT_OUT/installed-files.txt ]; then
+                make -j `sysctl hw.ncpu|cut -d" " -f2` installed-file-list
+            fi
+            make -j `sysctl hw.ncpu|cut -d" " -f2` "$@"
+            ;;
+        *)
+            if [ ! -f $ANDROID_PRODUCT_OUT/installed-files.txt ]; then
+                schedtool -B -n 1 -e ionice -n 1 make -j$(cat /proc/cpuinfo | grep "^processor" | wc -l) installed-file-list
+            fi
+            schedtool -B -n 1 -e ionice -n 1 make -j$(cat /proc/cpuinfo | grep "^processor" | wc -l) "$@"
+            ;;
+    esac
+    case $@ in
+        *\ * )
+            echo $@ | awk 'gsub(/ /,"\n") {print}' | while read line; do
+                blackmagic=`sed -n "/$line/{p;q;}" $ANDROID_PRODUCT_OUT/installed-files.txt | awk {'print $2'}`
+                if [ `echo $blackmagic | cut -f3 -d "/" = framework ];
+                elif [ `echo $blackmagic | cut -f4 -d "/" = SystemUI.apk ]; then
+                    adb_stop=true
+                fi
+                adb remount
+                if [ $adb_stop = true ]; then
+                    adb shell stop
+                fi
+                adb push $ANDROID_PRODUCT_OUT$blackmagic $blackmagic
+                if [ $adb_stop = true ]; then
+                    adb shell start
+                fi
+            done
+            ;;
+        *)
+            blackmagic=`sed -n "/$@/{p;q;}" $ANDROID_PRODUCT_OUT/installed-files.txt | awk {'print $2'}`
+            if [ `echo $blackmagic | cut -f3 -d "/" = framework ];
+            elif [ `echo $blackmagic | cut -f4 -d "/" = SystemUI.apk ]; then
+                adb_stop=true
+            fi
+            adb remount
+            if [ $adb_stop = true ]; then
+                adb shell stop
+            fi
+            adb push $ANDROID_PRODUCT_OUT$blackmagic $blackmagic
+            if [ $adb_stop = true ]; then
+                adb shell start
+            fi
+            ;;
+    esac
+}
+
+function reposync() {
+    case `uname -s` in
+        Darwin)
+            repo sync -j 4 "$@"
+            ;;
+        *)
+            schedtool -B -n 1 -e ionice -n 1 repo sync -j 4 "$@"
+            ;;
+    esac
 }
 
 # Force JAVA_HOME to point to java 1.6 if it isn't already set
@@ -1322,7 +1405,7 @@ if [ "x$SHELL" != "x/bin/bash" ]; then
 fi
 
 # Execute the contents of any vendorsetup.sh files we can find.
-for f in `/bin/ls vendor/*/vendorsetup.sh vendor/*/*/vendorsetup.sh 2> /dev/null`
+for f in `/bin/ls vendor/*/vendorsetup.sh vendor/*/*/vendorsetup.sh device/*/*/vendorsetup.sh 2> /dev/null`
 do
     echo "including $f"
     . $f

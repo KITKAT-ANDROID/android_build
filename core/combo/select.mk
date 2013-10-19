@@ -48,6 +48,11 @@ $(combo_target)HAVE_KERNEL_MODULES := 0
 
 $(combo_target)GLOBAL_CFLAGS := -fno-exceptions -Wno-multichar
 $(combo_target)RELEASE_CFLAGS := -O2 -g -fno-strict-aliasing
+# Turn off strict-aliasing if we're building an AOSP variant without the
+# patchset...
+ifeq ($(DEBUG_NO_STRICT_ALIASING),yes)
+$(combo_target)RELEASE_CFLAGS += -fno-strict-aliasing -Wno-error=strict-aliasing
+endif
 $(combo_target)GLOBAL_LDFLAGS :=
 $(combo_target)GLOBAL_ARFLAGS := crsP
 
@@ -59,7 +64,7 @@ $(combo_target)STATIC_LIB_SUFFIX := .a
 # Now include the combo for this specific target.
 include $(BUILD_COMBOS)/$(combo_target)$(combo_os_arch).mk
 
-ifneq (,$(filter true 1,$(USE_CCACHE)))
+ifneq ($(USE_CCACHE),)
   # The default check uses size and modification time, causing false misses
   # since the mtime depends when the repo was checked out
   export CCACHE_COMPILERCHECK := content

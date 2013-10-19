@@ -44,7 +44,13 @@ PRODUCT_PACKAGES := \
     CalendarProvider \
     bluetooth-health \
     hostapd \
-    wpa_supplicant.conf
+    wpa_supplicant.conf \
+	busybox \
+    rsync \
+    libncurses \
+    nano \
+    lsof \
+    bash 
 
 PRODUCT_PACKAGES += \
     audio \
@@ -61,12 +67,7 @@ PRODUCT_PACKAGES += \
     icu.dat
 
 PRODUCT_PACKAGES += \
-    librs_jni \
-    libvideoeditor_jni \
-    libvideoeditor_core \
-    libvideoeditor_osal \
-    libvideoeditor_videofilters \
-    libvideoeditorplayer \
+    librs_jni
 
 PRODUCT_PACKAGES += \
     audio.primary.default \
