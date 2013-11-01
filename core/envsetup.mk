@@ -142,7 +142,7 @@ ifeq (,$(strip $(OUT_DIR_COMMON_BASE)))
 ifneq ($(TOPDIR),)
 OUT_DIR := $(TOPDIR)out
 else
-OUT_DIR := $(shell python -c 'import os,sys; print os.path.realpath(sys.argv[1])' .)/out
+OUT_DIR := $(shell readlink -f .)/out
 endif
 else
 OUT_DIR := $(OUT_DIR_COMMON_BASE)/$(notdir $(PWD))
@@ -200,6 +200,7 @@ TARGET_OUT_OPTIONAL_EXECUTABLES:= $(TARGET_OUT)/xbin
 TARGET_OUT_SHARED_LIBRARIES:= $(TARGET_OUT)/lib
 TARGET_OUT_JAVA_LIBRARIES:= $(TARGET_OUT)/framework
 TARGET_OUT_APPS:= $(TARGET_OUT)/app
+TARGET_OUT_APPS_PRIVILEGED := $(TARGET_OUT)/priv-app
 TARGET_OUT_KEYLAYOUT := $(TARGET_OUT)/usr/keylayout
 TARGET_OUT_KEYCHARS := $(TARGET_OUT)/usr/keychars
 TARGET_OUT_ETC := $(TARGET_OUT)/etc
@@ -215,6 +216,7 @@ TARGET_OUT_DATA_KEYLAYOUT := $(TARGET_OUT_KEYLAYOUT)
 TARGET_OUT_DATA_KEYCHARS := $(TARGET_OUT_KEYCHARS)
 TARGET_OUT_DATA_ETC := $(TARGET_OUT_ETC)
 TARGET_OUT_DATA_NATIVE_TESTS := $(TARGET_OUT_DATA)/nativetest
+TARGET_OUT_DATA_FAKE := $(TARGET_OUT_DATA)/fake_packages
 
 TARGET_OUT_CACHE := $(PRODUCT_OUT)/cache
 

@@ -187,7 +187,7 @@ def LoadRecoveryFSTab(zip, fstab_version):
       line = line.strip()
       if not line or line.startswith("#"): continue
       pieces = line.split()
-      if not (3 <= len(pieces) <= 7):
+      if not (3 <= len(pieces) <= 4):
         raise ValueError("malformed recovery.fstab line: \"%s\"" % (line,))
 
       p = Partition()
@@ -196,7 +196,7 @@ def LoadRecoveryFSTab(zip, fstab_version):
       p.device = pieces[2]
       p.length = 0
       options = None
-      if len(pieces) >= 4 and pieces[3] != 'NULL':
+      if len(pieces) >= 4:
         if pieces[3].startswith("/"):
           p.device2 = pieces[3]
           if len(pieces) >= 5:
@@ -315,12 +315,17 @@ def BuildBootableImage(sourcedir, fs_config_file, info_dict=None):
       cmd.append("--pagesize")
       cmd.append(open(fn).read().rstrip("\n"))
 
-    args = info_dict.get("mkbootimg_args", None)
-    if args and args.strip():
-      cmd.extend(args.split())
+    fn = os.path.join(sourcedir, "ramdiskaddr")
+    if os.access(fn, os.F_OK):
+      cmd.append("--ramdiskaddr")
+      cmd.append(open(fn).read().rstrip("\n"))
 
-    cmd.extend(["--ramdisk", ramdisk_img.name,
-                "--output", img.name])
+  args = info_dict.get("mkbootimg_args", None)
+  if args and args.strip():
+    cmd.extend(args.split())
+
+  cmd.extend(["--ramdisk", ramdisk_img.name,
+              "--output", img.name])
 
   p = Run(cmd, stdout=subprocess.PIPE)
   p.communicate()
@@ -461,9 +466,14 @@ def SignFile(input_name, output_name, key, password, align=None,
   else:
     sign_name = output_name
 
-  cmd = [OPTIONS.java_path, "-Xmx2048m", "-jar",
-         os.path.join(OPTIONS.search_path, OPTIONS.signapk_path)]
-  cmd.extend(OPTIONS.extra_signapk_args)
+  check = (sys.maxsize > 2**32)
+  if check is True:
+    cmd = ["java", "-Xmx2048m", "-jar",
+           os.path.join(OPTIONS.search_path, "framework", "signapk.jar")]
+  else:
+    cmd = ["java", "-Xmx1024m", "-jar",
+           os.path.join(OPTIONS.search_path, "framework", "signapk.jar")]
+
   if whole_file:
     cmd.append("-w")
   cmd.extend([key + OPTIONS.public_key_suffix,
@@ -956,8 +966,7 @@ def ComputeDifferences(diffs):
 
 
 # map recovery.fstab's fs_types to mount/format "partition types"
-PARTITION_TYPES = { "bml": "BML",
-                    "ext2": "EMMC",
+PARTITION_TYPES = { "ext2": "EMMC",
                     "ext3": "EMMC",
                     "ext4": "EMMC",
                     "emmc": "EMMC",
