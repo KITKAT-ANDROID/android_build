@@ -477,7 +477,7 @@ function breakfast()
     CUSTOM_DEVICES_ONLY="true"
     unset LUNCH_MENU_CHOICES
     add_lunch_combo full-eng
-    for f in `/bin/ls vendor/omni/vendorsetup.sh 2> /dev/null`
+    for f in `/bin/ls vendor/kitkat/vendorsetup.sh 2> /dev/null`
         do
             echo "including $f"
             . $f
@@ -494,7 +494,7 @@ function breakfast()
             lunch $target
         else
             # This is probably just the omni model name
-            lunch omni_$target-userdebug
+            lunch kitkat_$target-userdebug
         fi
     fi
     return $?
@@ -541,20 +541,6 @@ function lunch()
 
     local product=$(echo -n $selection | sed -e "s/-.*$//")
     check_product $product
-    if [ $? -ne 0 ]
-    then
-        # if we can't find the product, try to grab it from our github
-        T=$(gettop)
-        pushd $T > /dev/null
-        build/tools/roomservice.py $product
-        popd > /dev/null
-        check_product $product
-    else
-        T=$(gettop)
-        pushd $T > /dev/null
-        build/tools/roomservice.py $product true
-        popd > /dev/null
-    fi
     if [ $? -ne 0 ]
     then
         echo
@@ -1421,13 +1407,6 @@ function set_java_home() {
         esac
     fi
 }
-
-function repopick() {
-    set_stuff_for_environment
-    T=$(gettop)
-    $T/build/tools/repopick.py $@
-}
-
 
 # Print colored exit condition
 function pez {
