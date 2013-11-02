@@ -13,6 +13,7 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 - jgrep:   Greps on all local Java files.
 - resgrep: Greps on all local res/*.xml files.
 - godir:   Go to the directory containing a file.
+- pushboot:Push a file from your OUT dir to your phone and reboots it, using absolute path.
 
 Look at the source to view more functions. The complete list is:
 EOF
@@ -58,12 +59,12 @@ function check_product()
         return
     fi
 
-    if (echo -n $1 | grep -q -e "^ev_") ; then
-        EV_BUILD=$(echo -n $1 | sed -e 's/^ev_//g')
+    if (echo -n $1 | grep -q -e "^kitkat_") ; then
+       CUSTOM_BUILD=$(echo -n $1 | sed -e 's/^kitkat_//g')
     else
-        EV_BUILD=
+       CUSTOM_BUILD=
     fi
-    export EV_BUILD
+    export CUSTOM_BUILD
 
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
@@ -458,6 +459,49 @@ function print_lunch_menu()
     echo
 }
 
+function brunch()
+{
+    breakfast $*
+    if [ $? -eq 0 ]; then
+        time mka bacon
+    else
+        echo "No such item in brunch menu. Try 'breakfast'"
+        return 1
+    fi
+    return $?
+}
+
+function breakfast()
+{
+    target=$1
+    CUSTOM_DEVICES_ONLY="true"
+    unset LUNCH_MENU_CHOICES
+    add_lunch_combo full-eng
+    for f in `/bin/ls vendor/omni/vendorsetup.sh 2> /dev/null`
+        do
+            echo "including $f"
+            . $f
+        done
+    unset f
+
+    if [ $# -eq 0 ]; then
+        # No arguments, so let's have the full menu
+        lunch
+    else
+        echo "z$target" | grep -q "-"
+        if [ $? -eq 0 ]; then
+            # A buildtype was specified, assume a full device name
+            lunch $target
+        else
+            # This is probably just the omni model name
+            lunch omni_$target-userdebug
+        fi
+    fi
+    return $?
+}
+
+alias bib=breakfast
+
 function lunch()
 {
     local answer
@@ -484,8 +528,6 @@ function lunch()
     elif (echo -n $answer | grep -q -e "^[^\-][^\-]*-[^\-][^\-]*$")
     then
         selection=$answer
-    else #It is likely just the board name, assemble the combo for us
-        selection=ev_${answer}-eng
     fi
 
     if [ -z "$selection" ]
@@ -501,14 +543,17 @@ function lunch()
     check_product $product
     if [ $? -ne 0 ]
     then
-        # if we can't find a product, try to grab it off the Evervolv github
+        # if we can't find the product, try to grab it from our github
         T=$(gettop)
         pushd $T > /dev/null
         build/tools/roomservice.py $product
         popd > /dev/null
         check_product $product
     else
+        T=$(gettop)
+        pushd $T > /dev/null
         build/tools/roomservice.py $product true
+        popd > /dev/null
     fi
     if [ $? -ne 0 ]
     then
@@ -540,6 +585,8 @@ function lunch()
 
     echo
 
+    fixup_common_out_dir
+
     set_stuff_for_environment
     printconfig
 }
@@ -556,26 +603,6 @@ function _lunch()
     return 0
 }
 complete -F _lunch lunch
-
-function find_deps() {
-
-    if [ -z "$TARGET_PRODUCT" ]
-    then
-        echo "TARGET_PRODUCT not set..."
-        lunch
-    fi
-
-    build/tools/roomservice.py $TARGET_PRODUCT true
-    if [ $? -ne 0 ]
-    then
-        echo "find_deps failed."
-    fi
-}
-
-function breakfast()
-{
-    lunch $@
-}
 
 # Configures the build to build unbundled apps.
 # Run tapas with one ore more app names (from LOCAL_PACKAGE_NAME)
@@ -614,6 +641,21 @@ function tapas()
 
     set_stuff_for_environment
     printconfig
+}
+
+function pushboot() {
+    if [ ! -f $OUT/$* ]; then
+        echo "File not found: $OUT/$*"
+        return 1
+    fi
+
+    adb root
+    sleep 1
+    adb wait-for-device
+    adb remount
+
+    adb push $OUT/$* /$*
+    adb reboot
 }
 
 function gettop
@@ -1336,47 +1378,34 @@ function godir () {
     \cd $T/$pathname
 }
 
-function cleantree () {
-    read -p "Are you sure you want to erase local changes? (y|N)" ans
-    test "$ans" = "Y" || test "$ans" = "y" || return
-    if [ ! "$ANDROID_BUILD_TOP" ]; then
-        export ANDROID_BUILD_TOP=$(gettop)
-    fi
-    if [ "$(pwd)" != "$ANDROID_BUILD_TOP" ]; then
-        cd "$ANDROID_BUILD_TOP"
-    fi
-    echo "Cleaning tree...This will take a few minutes"
-    repo forall -c git reset --hard >/dev/null 2>&1
-    repo forall -c git clean -fd >/dev/null 2>&1
-    repo sync -fd >/dev/null 2>&1
-    echo "Done"
+# Make using all available CPUs
+function mka() {
+    case `uname -s` in
+        Darwin)
+            make -j `sysctl hw.ncpu|cut -d" " -f2` "$@"
+            ;;
+        *)
+            schedtool -B -n 1 -e ionice -n 1 make -j `cat /proc/cpuinfo | grep "^processor" | wc -l` "$@"
+            ;;
+    esac
 }
 
-function aospremote() {
-    git remote rm aosp 2> /dev/null
-    if [ ! -d .git ]
-    then
-        echo .git directory not found. Please run this from the root directory of the Android repository you wish to set up.
+function fixup_common_out_dir() {
+    common_out_dir=$(get_build_var OUT_DIR)/target/common
+    target_device=$(get_build_var TARGET_DEVICE)
+    if [ ! -z $ANDROID_FIXUP_COMMON_OUT ]; then
+        if [ -d ${common_out_dir} ] && [ ! -L ${common_out_dir} ]; then
+            mv ${common_out_dir} ${common_out_dir}-${target_device}
+            ln -s ${common_out_dir}-${target_device} ${common_out_dir}
+        else
+            [ -L ${common_out_dir} ] && rm ${common_out_dir}
+            mkdir -p ${common_out_dir}-${target_device}
+            ln -s ${common_out_dir}-${target_device} ${common_out_dir}
+        fi
+    else
+        [ -L ${common_out_dir} ] && rm ${common_out_dir}
+        mkdir -p ${common_out_dir}
     fi
-    if [ ! "$ANDROID_BUILD_TOP" ]; then
-        export ANDROID_BUILD_TOP=$(gettop)
-    fi
-    PROJECT=`pwd | sed s#$ANDROID_BUILD_TOP/##g`
-    if (echo $PROJECT | grep -qv "^device")
-    then
-        PFX="platform/"
-    fi
-    git remote add aosp https://android.googlesource.com/$PFX$PROJECT
-    echo "Remote 'aosp' created"
-}
-
-function repodiff() {
-    if [ -z "$*" ]; then
-        echo "Usage: repodiff <ref-from> [[ref-to] [--numstat]]"
-        return
-    fi
-    diffopts=$* repo forall -c \
-      'echo "$REPO_PATH ($REPO_REMOTE)"; git diff ${diffopts} 2>/dev/null ;'
 }
 
 # Force JAVA_HOME to point to java 1.6 if it isn't already set
@@ -1392,6 +1421,13 @@ function set_java_home() {
         esac
     fi
 }
+
+function repopick() {
+    set_stuff_for_environment
+    T=$(gettop)
+    $T/build/tools/repopick.py $@
+}
+
 
 # Print colored exit condition
 function pez {
