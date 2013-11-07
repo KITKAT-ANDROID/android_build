@@ -586,7 +586,7 @@ import_includes_deps := $(strip \
     $(foreach l, $(LOCAL_STATIC_LIBRARIES) $(LOCAL_WHOLE_STATIC_LIBRARIES), \
       $(call intermediates-dir-for,STATIC_LIBRARIES,$(l),$(LOCAL_IS_HOST_MODULE))/export_includes))
 $(import_includes) : $(import_includes_deps)
-	@echo -e ${PRT_IMP}Import includes file:${CL_RST} $@
+	@echo Import includes file: $@
 	$(hide) mkdir -p $(dir $@) && rm -f $@
 ifdef import_includes_deps
 	$(hide) for f in $^; do \
@@ -617,12 +617,12 @@ normal_objects := \
 
 all_objects := $(normal_objects) $(gen_o_objects)
 
+LOCAL_C_INCLUDES += $(TOPDIR)$(LOCAL_PATH) $(intermediates)
+
 ## Allow a device's own headers to take precedence over global ones
 ifneq ($(TARGET_SPECIFIC_HEADER_PATH),)
-LOCAL_C_INCLUDES += $(TOPDIR)$(TARGET_SPECIFIC_HEADER_PATH)
+LOCAL_C_INCLUDES := $(TOPDIR)$(TARGET_SPECIFIC_HEADER_PATH) $(LOCAL_C_INCLUDES)
 endif
-
-LOCAL_C_INCLUDES += $(TOPDIR)$(LOCAL_PATH) $(intermediates)
 
 ifndef LOCAL_SDK_VERSION
   LOCAL_C_INCLUDES += $(JNI_H_INCLUDE)
@@ -766,7 +766,7 @@ $(LOCAL_INSTALLED_MODULE): | $(installed_static_library_notice_file_targets)
 export_includes := $(intermediates)/export_includes
 $(export_includes): PRIVATE_EXPORT_C_INCLUDE_DIRS := $(LOCAL_EXPORT_C_INCLUDE_DIRS)
 $(export_includes) : $(LOCAL_MODULE_MAKEFILE)
-	@echo -e ${PRT_IMP}Export includes file:${CL_RST} $< -- $@
+	@echo Export includes file: $< -- $@
 	$(hide) mkdir -p $(dir $@) && rm -f $@
 ifdef LOCAL_EXPORT_C_INCLUDE_DIRS
 	$(hide) for d in $(PRIVATE_EXPORT_C_INCLUDE_DIRS); do \
