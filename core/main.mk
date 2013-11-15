@@ -42,12 +42,14 @@ endif
 ifeq (,$(findstring CYGWIN,$(shell uname -sm)))
 ifeq (0,$(shell expr $$(echo $(MAKE_VERSION) | sed "s/[^0-9\.].*//") = 3.81))
 ifeq (0,$(shell expr $$(echo $(MAKE_VERSION) | sed "s/[^0-9\.].*//") = 3.82))
+ifeq (0,$(shell expr $$(echo $(MAKE_VERSION) | sed "s/[^0-9\.].*//") = 4.0))
 $(warning ********************************************************************************)
 $(warning *  You are using version $(MAKE_VERSION) of make.)
-$(warning *  Android can only be built by versions 3.81 and 3.82.)
+$(warning *  Android is tested to build with versions 3.81 and 3.82.)
 $(warning *  see https://source.android.com/source/download.html)
 $(warning ********************************************************************************)
 $(error stopping)
+endif
 endif
 endif
 endif
@@ -140,27 +142,15 @@ $(warning ************************************************************)
 $(error Directory names containing spaces not supported)
 endif
 
-# Check for the corrent jdk
-ifneq ($(shell java -version 2>&1 | grep -i openjdk),)
-$(info ************************************************************)
-$(info You are attempting to build with an unsupported JDK.)
-$(info $(space))
-$(info You use OpenJDK but only Sun/Oracle JDK is supported.)
-$(info Please follow the machine setup instructions at)
-$(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
-$(info ************************************************************)
-$(error stop)
-endif
-
 # Check for the correct version of java
-java_version := $(shell java -version 2>&1 | head -n 1 | grep '^java .*[ "]1\.6[\. "$$]')
+java_version := $(shell java -version 2>&1 | head -n 1 | grep '^java .*[ "]1\.[67][\. "$$]')
 ifeq ($(strip $(java_version)),)
 $(info ************************************************************)
-$(info You are attempting to build with the incorrect version)
+$(info You are attempting to build with an unsupported version)
 $(info of java.)
 $(info $(space))
 $(info Your version is: $(shell java -version 2>&1 | head -n 1).)
-$(info The correct version is: Java SE 1.6.)
+$(info The correct version is: Java SE 1.6 or 1.7.)
 $(info $(space))
 $(info Please follow the machine setup instructions at)
 $(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
@@ -169,14 +159,14 @@ $(error stop)
 endif
 
 # Check for the correct version of javac
-javac_version := $(shell javac -version 2>&1 | head -n 1 | grep '[ "]1\.6[\. "$$]')
+javac_version := $(shell javac -version 2>&1 | head -n 1 | grep '[ "]1\.[67][\. "$$]')
 ifeq ($(strip $(javac_version)),)
 $(info ************************************************************)
 $(info You are attempting to build with the incorrect version)
 $(info of javac.)
 $(info $(space))
 $(info Your version is: $(shell javac -version 2>&1 | head -n 1).)
-$(info The correct version is: 1.6.)
+$(info The correct version is: 1.6 or 1.7.)
 $(info $(space))
 $(info Please follow the machine setup instructions at)
 $(info $(space)$(space)$(space)$(space)https://source.android.com/source/download.html)
@@ -325,8 +315,6 @@ ifneq (,$(user_variant))
   ADDITIONAL_DEFAULT_PROPERTIES += ro.allow.mock.location=0
 
 else # !user_variant
-  # Turn on checkjni for non-user builds.
-  ADDITIONAL_BUILD_PROPERTIES += ro.kernel.android.checkjni=1
   # Set device insecure for non-user builds.
   ADDITIONAL_DEFAULT_PROPERTIES += ro.secure=0
   # Allow mock locations by default for non user builds
@@ -921,12 +909,20 @@ samplecode: $(sample_APKS_COLLECTION)
 findbugs: $(INTERNAL_FINDBUGS_HTML_TARGET) $(INTERNAL_FINDBUGS_XML_TARGET)
 
 .PHONY: clean
+dirs_to_clean := \
+	$(PRODUCT_OUT) \
+	$(TARGET_COMMON_OUT_ROOT)
 clean:
-	@rm -rf $(OUT_DIR)
-	@echo "Entire build directory removed."
+	@for dir in $(dirs_to_clean) ; do \
+	echo "Cleaning $$dir..."; \
+	rm -rf $$dir; \
+	done
+	@echo "Clean."; \
 
 .PHONY: clobber
-clobber: clean
+clobber:
+	@rm -rf $(OUT_DIR)
+	@echo "Entire build directory removed."
 
 # The rules for dataclean and installclean are defined in cleanbuild.mk.
 

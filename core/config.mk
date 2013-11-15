@@ -45,6 +45,9 @@ SRC_SERVERS:= $(TOPDIR)servers
 SRC_TARGET_DIR := $(TOPDIR)build/target
 SRC_API_DIR := $(TOPDIR)prebuilts/sdk/api
 
+# Evervolv
+SRC_EVERVOLV_DIR := $(TOPDIR)vendor/ev
+
 # Some specific paths to tools
 SRC_DROIDDOC_DIR := $(TOPDIR)build/tools/droiddoc
 
@@ -135,6 +138,9 @@ endif
 # Define most of the global variables.  These are the ones that
 # are specific to the user's build configuration.
 include $(BUILD_SYSTEM)/envsetup.mk
+
+# Useful macros that can be used in board configs
+include $(BUILD_SYSTEM)/linaro_compilerchecks.mk
 
 # Boards may be defined under $(SRC_TARGET_DIR)/board/$(TARGET_DEVICE)
 # or under vendor/*/$(TARGET_DEVICE).  Search in both places, but
@@ -314,6 +320,7 @@ MINIGZIP := $(HOST_OUT_EXECUTABLES)/minigzip$(HOST_EXECUTABLE_SUFFIX)
 MKBOOTIMG := $(HOST_OUT_EXECUTABLES)/mkbootimg$(HOST_EXECUTABLE_SUFFIX)
 MKYAFFS2 := $(HOST_OUT_EXECUTABLES)/mkyaffs2image$(HOST_EXECUTABLE_SUFFIX)
 APICHECK := $(HOST_OUT_EXECUTABLES)/apicheck$(HOST_EXECUTABLE_SUFFIX)
+MKIMAGE :=  $(HOST_OUT_EXECUTABLES)/mkimage$(HOST_EXECUTABLE_SUFFIX)
 FS_GET_STATS := $(HOST_OUT_EXECUTABLES)/fs_get_stats$(HOST_EXECUTABLE_SUFFIX)
 MKEXT2IMG := $(HOST_OUT_EXECUTABLES)/genext2fs$(HOST_EXECUTABLE_SUFFIX)
 MAKE_EXT4FS := $(HOST_OUT_EXECUTABLES)/make_ext4fs$(HOST_EXECUTABLE_SUFFIX)
@@ -422,11 +429,15 @@ TARGET_PROJECT_INCLUDES:= $(SRC_HEADERS) $(TARGET_OUT_HEADERS) \
 TARGET_GLOBAL_CFLAGS += $(TARGET_ERROR_FLAGS)
 TARGET_GLOBAL_CPPFLAGS += $(TARGET_ERROR_FLAGS)
 
+ifeq ($(TARGET_EXTRA_CPPFLAGS),)
+TARGET_EXTRA_CPPFLAGS := $(TARGET_EXTRA_CFLAGS)
+endif
+
 HOST_GLOBAL_CFLAGS += $(HOST_RELEASE_CFLAGS)
 HOST_GLOBAL_CPPFLAGS += $(HOST_RELEASE_CPPFLAGS)
 
-TARGET_GLOBAL_CFLAGS += $(TARGET_RELEASE_CFLAGS)
-TARGET_GLOBAL_CPPFLAGS += $(TARGET_RELEASE_CPPFLAGS)
+TARGET_GLOBAL_CFLAGS += $(TARGET_RELEASE_CFLAGS) $(TARGET_EXTRA_CFLAGS)
+TARGET_GLOBAL_CPPFLAGS += $(TARGET_RELEASE_CPPFLAGS) $(TARGET_EXTRA_CPPFLAGS)
 
 # allow overriding default Java libraries on a per-target basis
 ifeq ($(TARGET_DEFAULT_JAVA_LIBRARIES),)

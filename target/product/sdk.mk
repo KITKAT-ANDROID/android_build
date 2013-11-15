@@ -27,13 +27,9 @@ PRODUCT_PACKAGES := \
 	Keyguard \
 	Music \
 	Mms \
-	OpenWnn \
+	Phone \
 	PrintSpooler \
-	libWnnEngDic \
-	libWnnJpnDic \
-	libwnndict \
 	TeleService \
-	PinyinIME \
 	Protips \
 	SoftKeyboard \
 	SystemUI \
