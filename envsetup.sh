@@ -58,12 +58,12 @@ function check_product()
         return
     fi
 
-    if (echo -n $1 | grep -q -e "^ev_") ; then
-        EV_BUILD=$(echo -n $1 | sed -e 's/^ev_//g')
+    if (echo -n $1 | grep -q -e "^kitkat_") ; then
+        KITKAT_BUILD=$(echo -n $1 | sed -e 's/^kitkat_//g')
     else
-        EV_BUILD=
+        KITKAT_BUILD=
     fi
-    export EV_BUILD
+    export KITKAT_BUILD
 
     CALLED_FROM_SETUP=true BUILD_SYSTEM=build/core \
         TARGET_PRODUCT=$1 \
@@ -485,7 +485,7 @@ function lunch()
     then
         selection=$answer
     else #It is likely just the board name, assemble the combo for us
-        selection=ev_${answer}-eng
+        selection=kitkat_${answer}-eng
     fi
 
     if [ -z "$selection" ]
@@ -499,17 +499,6 @@ function lunch()
 
     local product=$(echo -n $selection | sed -e "s/-.*$//")
     check_product $product
-    if [ $? -ne 0 ]
-    then
-        # if we can't find a product, try to grab it off the Evervolv github
-        T=$(gettop)
-        pushd $T > /dev/null
-        build/tools/roomservice.py $product
-        popd > /dev/null
-        check_product $product
-    else
-        build/tools/roomservice.py $product true
-    fi
     if [ $? -ne 0 ]
     then
         echo
@@ -556,26 +545,6 @@ function _lunch()
     return 0
 }
 complete -F _lunch lunch
-
-function find_deps() {
-
-    if [ -z "$TARGET_PRODUCT" ]
-    then
-        echo "TARGET_PRODUCT not set..."
-        lunch
-    fi
-
-    build/tools/roomservice.py $TARGET_PRODUCT true
-    if [ $? -ne 0 ]
-    then
-        echo "find_deps failed."
-    fi
-}
-
-function breakfast()
-{
-    lunch $@
-}
 
 # Configures the build to build unbundled apps.
 # Run tapas with one ore more app names (from LOCAL_PACKAGE_NAME)
